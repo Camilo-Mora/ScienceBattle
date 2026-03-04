@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Science Paper Battle ⚔️</title>
+  <meta name="description"
+    content="Pit two research ideas against each other and let an AI science editor decide which deserves publication in Nature or Science." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0b0e18;
+      --surface: #111828;
+      --glass: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f5c842;
+      --gold-dim: #a88820;
+      --teal: #38c9c7;
+      --teal-dim: #1e7a79;
+      --red: #e05c6a;
+      --txt: #e8eaf0;
+      --txt-muted: #7a85a0;
+      --radius: 14px;
+      --shadow: 0 8px 40px rgba(0, 0, 0, 0.55);
+      --glow-gold: 0 0 18px rgba(245, 200, 66, 0.3);
+      --glow-teal: 0 0 18px rgba(56, 201, 199, 0.3);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ─── Header / Top Bar ─────────────────────────────────────── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gold), var(--teal));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .api-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .api-row label {
+      font-size: 0.78rem;
+      color: var(--txt-muted);
+      white-space: nowrap;
+    }
+
+    .api-row input,
+    .api-row select {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--txt);
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      font-family: 'Fira Mono', monospace;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .api-row input {
+      width: 280px;
+    }
+
+    .api-row input:focus,
+    .api-row select:focus {
+      border-color: var(--teal);
+    }
+
+    .api-row select option {
+      background: #111828;
+    }
+
+    .api-key-toggle {
+      background: none;
+      border: none;
+      color: var(--txt-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .api-key-toggle:hover {
+      color: var(--teal);
+    }
+
+    /* ─── Arena Grid ────────────────────────────────────────────── */
+    .arena-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      padding: 32px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .arena-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ─── Idea Card ─────────────────────────────────────────────── */
+    .idea-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .idea-card.side-a {
+      border-top: 3px solid var(--gold);
+    }
+
+    .idea-card.side-b {
+      border-top: 3px solid var(--teal);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+
+    .side-a .badge {
+      background: rgba(245, 200, 66, 0.15);
+      color: var(--gold);
+    }
+
+    .side-b .badge {
+      background: rgba(56, 201, 199, 0.15);
+      color: var(--teal);
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--txt);
+    }
+
+    /* ─── Textarea + Counter ────────────────────────────────────── */
+    .textarea-wrap {
+      position: relative;
+    }
+
+    .idea-textarea {
+      width: 100%;
+      min-height: 160px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--txt);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      padding: 14px 16px;
+      resize: vertical;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      line-height: 1.7;
+    }
+
+    .idea-textarea:focus {
+      border-color: var(--teal);
+      box-shadow: var(--glow-teal);
+    }
+
+    .word-counter {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      font-size: 0.72rem;
+      font-family: 'Fira Mono', monospace;
+      color: var(--txt-muted);
+      background: var(--surface);
+      padding: 2px 7px;
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .word-counter.warn {
+      color: var(--gold);
+    }
+
+    .word-counter.limit {
+      color: var(--red);
+    }
+
+    /* ─── Buttons ────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 9px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary-a {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      color: #0b0e18;
+      box-shadow: 0 4px 16px rgba(245, 200, 66, 0.25);
+    }
+
+    .btn-primary-a:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(245, 200, 66, 0.4);
+    }
+
+    .btn-primary-b {
+      background: linear-gradient(135deg, var(--teal), var(--teal-dim));
+      color: #0b0e18;
+      box-shadow: 0 4px 16px rgba(56, 201, 199, 0.25);
+    }
+
+    .btn-primary-b:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(56, 201, 199, 0.4);
+    }
+
+    .btn-ghost {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--txt-muted);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      border-color: var(--teal);
+      color: var(--teal);
+      background: rgba(56, 201, 199, 0.07);
+    }
+
+    .btn-fight {
+      background: linear-gradient(135deg, #e05c6a, #9b2335);
+      color: #fff;
+      font-size: 1.05rem;
+      padding: 14px 36px;
+      border-radius: 12px;
+      box-shadow: 0 6px 28px rgba(224, 92, 106, 0.35);
+    }
+
+    .btn-fight:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(224, 92, 106, 0.5);
+    }
+
+    .btn-summarize {
+      background: rgba(245, 200, 66, 0.12);
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      font-size: 0.8rem;
+    }
+
+    .btn-summarize:hover:not(:disabled) {
+      background: rgba(245, 200, 66, 0.2);
+    }
+
+    .btn-send {
+      background: var(--teal-dim);
+      color: #fff;
+      padding: 9px 16px;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background: var(--teal);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* ─── Report Panel ───────────────────────────────────────────── */
+    .report-panel {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .report-panel.visible {
+      display: block;
+    }
+
+    .report-panel h3 {
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--txt-muted);
+      margin-bottom: 12px;
+    }
+
+    .report-content {
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--txt);
+    }
+
+    .report-content strong {
+      color: var(--gold);
+    }
+
+    /* ─── Version Selector ───────────────────────────────────────── */
+    .version-row {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: var(--txt-muted);
+    }
+
+    .version-row.visible {
+      display: flex;
+    }
+
+    .version-select {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--txt);
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .version-select:focus {
+      border-color: var(--gold);
+    }
+
+    /* ─── Challenge Chat ─────────────────────────────────────────── */
+    .challenge-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .challenge-panel.open {
+      display: flex;
+    }
+
+    .challenge-header {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--txt-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 360px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .msg {
+      padding: 10px 14px;
+      border-radius: 9px;
+      font-size: 0.85rem;
+      line-height: 1.65;
+      max-width: 92%;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: rgba(56, 201, 199, 0.12);
+      border: 1px solid var(--teal-dim);
+      color: var(--txt);
+    }
+
+    .msg.assistant {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--txt);
+    }
+
+    .msg.system-note {
+      align-self: center;
+      background: rgba(245, 200, 66, 0.07);
+      border: 1px dashed var(--gold-dim);
+      color: var(--gold);
+      font-size: 0.78rem;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--txt);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.84rem;
+      padding: 10px 14px;
+      outline: none;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      transition: border 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--teal);
+    }
+
+    /* ─── Summary Result ─────────────────────────────────────────── */
+    .summary-box {
+      background: rgba(245, 200, 66, 0.06);
+      border: 1px solid var(--gold-dim);
+      border-radius: 10px;
+      padding: 16px;
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .summary-box.visible {
+      display: block;
+    }
+
+    .summary-box h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+
+    .summary-box .summary-text {
+      font-size: 0.86rem;
+      line-height: 1.7;
+    }
+
+    /* ─── Fight Section ──────────────────────────────────────────── */
+    .fight-section {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 0 32px 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .fight-trigger {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 28px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .fight-trigger-title {
+      font-size: 0.8rem;
+      color: var(--txt-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .fight-result {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .fight-result.visible {
+      display: flex;
+    }
+
+    .fight-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .fight-comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .fight-cell {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .fight-cell h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .fight-cell.side-a h3 {
+      color: var(--gold);
+    }
+
+    .fight-cell.side-b h3 {
+      color: var(--teal);
+    }
+
+    .fight-verdict {
+      background: rgba(224, 92, 106, 0.07);
+      border: 1px solid rgba(224, 92, 106, 0.3);
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .fight-verdict h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+
+    .verdict-text {
+      font-size: 0.9rem;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    /* ─── Fight Winner Banner ─────────────────────────────────────── */
+    .fight-winner {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 18px 24px;
+      background: linear-gradient(135deg, rgba(245, 200, 66, 0.15), rgba(245, 200, 66, 0.05));
+      border: 1.5px solid var(--gold);
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.03em;
+      animation: fadeIn 0.5s ease;
+      text-align: center;
+    }
+
+    /* ─── Fight Version Row (inside fight box) ────────────────────── */
+    .fight-versions-row {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 10px 0 4px;
+    }
+
+    .fight-version-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--txt-muted);
+    }
+
+    .fight-version-item span {
+      white-space: nowrap;
+    }
+
+    .fight-challenge-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .fight-challenge-panel.open {
+      display: flex;
+    }
+
+    .fight-challenge-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--red);
+    }
+
+    /* ─── Loader ─────────────────────────────────────────────────── */
+    .loader {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+
+    /* ─── Animations ──────────────────────────────────────────────── */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes glow-pulse {
+
+      0%,
+      100% {
+        box-shadow: var(--glow-gold);
+      }
+
+      50% {
+        box-shadow: 0 0 28px rgba(245, 200, 66, 0.55);
+      }
+    }
+
+    /* ─── Divider ─────────────────────────────────────────────────── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* ─── Toast ───────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--red);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 999;
+      pointer-events: none;
+      width: max-content;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── Idea Name Input ────────────────────────────────────────────────── */
+    .idea-name-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--txt);
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 4px 2px 7px;
+      outline: none;
+      transition: border-color 0.2s;
+      letter-spacing: 0.01em;
+    }
+
+    .idea-name-input:focus {
+      border-bottom-color: var(--gold);
+    }
+
+    .idea-name-input::placeholder {
+      color: var(--txt-muted);
+      font-weight: 400;
+    }
+
+    /* ─── Rendered Markdown ──────────────────────────────────────────────── */
+    .md-body {
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--txt);
+    }
+
+    .md-body h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 14px 0 6px;
+    }
+
+    .md-body h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--teal);
+      margin: 12px 0 5px;
+    }
+
+    .md-body h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--txt-muted);
+      margin: 10px 0 4px;
+    }
+
+    .md-body p {
+      margin: 5px 0;
+    }
+
+    .md-body ul,
+    .md-body ol {
+      padding-left: 18px;
+      margin: 6px 0;
+    }
+
+    .md-body li {
+      margin: 3px 0;
+    }
+
+    .md-body strong {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .md-body em {
+      color: var(--teal);
+      font-style: italic;
+    }
+
+    .md-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 12px 0;
+    }
+
+    .md-body code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.82rem;
+    }
+
+    /* Markdown table */
+    .md-table-wrap {
+      overflow-x: auto;
+      margin: 12px 0;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .md-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    .md-table th {
+      background: rgba(245, 200, 66, 0.1);
+      color: var(--gold);
+      font-weight: 600;
+      padding: 9px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .md-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: top;
+      color: var(--txt);
+    }
+
+    .md-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .md-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .md-table td:first-child {
+      font-weight: 600;
+      color: var(--teal);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ─── Top Bar ──────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <h1>⚗️ Science Paper Battle</h1>
+    <div class="api-row">
+      <label for="apiKey">Gemini API Key</label>
+      <input type="password" id="apiKey" placeholder="AIza…" autocomplete="off" />
+      <button class="api-key-toggle" id="toggleKey" title="Show/hide key">👁</button>
+      <label for="modelSelect">Model</label>
+      <select id="modelSelect">
+        <optgroup label="─── Gemini 3.x (Latest) ───">
+          <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash Lite Preview ★ Free</option>
+          <option value="gemini-3-flash-preview">Gemini 3 Flash Preview ★ Free</option>
+          <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+        </optgroup>
+        <optgroup label="─── Gemini 2.5 (Free Tier) ───">
+          <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash ★ Free</option>
+          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite ★ Free</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro ★ Free (5 rpm)</option>
+        </optgroup>
+        <optgroup label="─── Gemma 3 Open (Free) ───">
+          <option value="gemma-3-27b-it">Gemma 3 27B IT ★ Free</option>
+          <option value="gemma-3-12b-it">Gemma 3 12B IT ★ Free</option>
+          <option value="gemma-3-4b-it">Gemma 3 4B IT ★ Free</option>
+          <option value="gemma-3-1b-it">Gemma 3 1B IT ★ Free</option>
+        </optgroup>
+        <optgroup label="─── Gemma 2 Open ───">
+          <option value="gemma-2-27b-it">Gemma 2 27B IT</option>
+        </optgroup>
+      </select>
+    </div>
+  </header>
+
+  <!-- ─── Arena Grid ───────────────────────────────────────────────── -->
+  <main class="arena-grid">
+
+    <!-- ── Idea A ── -->
+    <article class="idea-card side-a" id="card-a">
+      <div class="card-header">
+        <span class="badge">Idea Alpha</span>
+      </div>
+      <input class="idea-name-input" id="idea-name-a" type="text"
+        placeholder="Name your idea (e.g. The CRISPR Longevity Paper)" />
+
+      <div class="textarea-wrap">
+        <textarea class="idea-textarea" id="idea-a"
+          placeholder="Outline your research idea in up to 200 words. Be specific: what is the question, what is the approach, and why does it matter?"
+          maxlength="2000"></textarea>
+        <span class="word-counter" id="wc-a">0 / 200</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary-a" id="check-a" onclick="checkFeasibility('a')">
+          🔬 Check Feasibility
+        </button>
+      </div>
+
+      <!-- Report -->
+      <div class="report-panel" id="report-a">
+        <h3>📋 Editor's Assessment — Idea Alpha</h3>
+        <div class="report-content" id="report-text-a"></div>
+      </div>
+
+
+
+      <!-- Challenge -->
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="challenge-btn-a" style="display:none" onclick="toggleChallenge('a')">
+          💬 Challenge
+        </button>
+      </div>
+
+      <div class="challenge-panel" id="challenge-a">
+        <div class="challenge-header">🗣 Challenge & Refine — Idea Alpha</div>
+        <div class="chat-messages" id="chat-a"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chat-input-a"
+            placeholder="Push back on the assessment, add evidence, reframe the idea…" rows="2"
+            onkeydown="chatKeydown(event,'a')"></textarea>
+          <button class="btn btn-send" onclick="sendChat('a')">Send</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-summarize" id="summarize-btn-a" onclick="summarizeIdea('a')">✨ Summarize Final
+            Idea</button>
+        </div>
+        <div class="summary-box" id="summary-a">
+          <h4>📌 Refined Idea Summary</h4>
+          <div class="summary-text" id="summary-text-a"></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── Idea B ── -->
+    <article class="idea-card side-b" id="card-b">
+      <div class="card-header">
+        <span class="badge">Idea Beta</span>
+      </div>
+      <input class="idea-name-input" id="idea-name-b" type="text"
+        placeholder="Name your idea (e.g. The Global Climate AI Model)" />
+
+      <div class="textarea-wrap">
+        <textarea class="idea-textarea" id="idea-b"
+          placeholder="Outline your research idea in up to 200 words. Be specific: what is the question, what is the approach, and why does it matter?"
+          maxlength="2000"></textarea>
+        <span class="word-counter" id="wc-b">0 / 200</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary-b" id="check-b" onclick="checkFeasibility('b')">
+          🔬 Check Feasibility
+        </button>
+      </div>
+
+      <!-- Report -->
+      <div class="report-panel" id="report-b">
+        <h3>📋 Editor's Assessment — Idea Beta</h3>
+        <div class="report-content" id="report-text-b"></div>
+      </div>
+
+
+
+      <!-- Challenge -->
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="challenge-btn-b" style="display:none" onclick="toggleChallenge('b')">
+          💬 Challenge
+        </button>
+      </div>
+
+      <div class="challenge-panel" id="challenge-b">
+        <div class="challenge-header">🗣 Challenge & Refine — Idea Beta</div>
+        <div class="chat-messages" id="chat-b"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chat-input-b"
+            placeholder="Push back on the assessment, add evidence, reframe the idea…" rows="2"
+            onkeydown="chatKeydown(event,'b')"></textarea>
+          <button class="btn btn-send" onclick="sendChat('b')">Send</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-summarize" id="summarize-btn-b" onclick="summarizeIdea('b')">✨ Summarize Final
+            Idea</button>
+        </div>
+        <div class="summary-box" id="summary-b">
+          <h4>📌 Refined Idea Summary</h4>
+          <div class="summary-text" id="summary-text-b"></div>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- ─── Fight Section ─────────────────────────────────────────────── -->
+  <section class="fight-section">
+    <div class="fight-trigger">
+      <div class="fight-trigger-title">Ready to compare? Select which version of each idea to pit against each other.
+      </div>
+      <div class="fight-versions-row">
+        <div class="fight-version-item">
+          <span id="version-label-a">💛 Alpha — use:</span>
+          <select class="version-select" id="version-a">
+            <option value="original">Original Idea (raw text)</option>
+            <option value="reviewed">Reviewed/Refined Version</option>
+            <option value="summary">Summarized Final Idea</option>
+          </select>
+        </div>
+        <div class="fight-version-item">
+          <span id="version-label-b">🩵 Beta — use:</span>
+          <select class="version-select" id="version-b">
+            <option value="original">Original Idea (raw text)</option>
+            <option value="reviewed">Reviewed/Refined Version</option>
+            <option value="summary">Summarized Final Idea</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-fight" id="fight-btn" onclick="startFight()">
+        ⚔️ Fight!
+      </button>
+    </div>
+
+    <div class="fight-result" id="fight-result">
+      <div class="fight-comparison">
+        <div class="fight-cell side-a">
+          <h3 id="fight-title-a">💛 Idea Alpha</h3>
+          <div id="fight-idea-a" style="font-size:0.86rem;line-height:1.7;white-space:pre-wrap;"></div>
+        </div>
+        <div class="fight-cell side-b">
+          <h3 id="fight-title-b">🩵 Idea Beta</h3>
+          <div id="fight-idea-b" style="font-size:0.86rem;line-height:1.7;white-space:pre-wrap;"></div>
+        </div>
+      </div>
+      <div class="fight-verdict">
+        <h3>⚖️ Editorial Verdict</h3>
+        <div class="verdict-text" id="verdict-text"></div>
+      </div>
+      <div class="fight-winner" id="fight-winner">
+        🏆 &nbsp;<span id="fight-winner-text">Winner</span>
+      </div>
+      <div class="btn-row" style="justify-content:center;gap:14px;">
+        <button class="btn btn-ghost" id="fight-challenge-btn" onclick="toggleFightChallenge()">💬 Challenge the
+          Verdict</button>
+        <button class="btn btn-summarize" id="fight-summary-btn" onclick="fightFinalSummary()" style="display:none">✨
+          Final Verdict Summary</button>
+      </div>
+      <div class="fight-challenge-panel" id="fight-challenge">
+        <div class="fight-challenge-title">🗣 Challenge the Verdict</div>
+        <div class="chat-messages" id="fight-chat"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="fight-chat-input"
+            placeholder="Argue your case, propose edits, or ask the editor to reconsider…" rows="2"
+            onkeydown="fightChatKeydown(event)"></textarea>
+          <button class="btn btn-send" onclick="sendFightChat()">Send</button>
+        </div>
+      </div>
+      <div class="summary-box" id="fight-summary-box"
+        style="border-color:rgba(224,92,106,0.4);background:rgba(224,92,106,0.06)">
+        <h4 style="color:var(--red)">🏁 Final Verdict Summary</h4>
+        <div class="summary-text" id="fight-summary-text"></div>
+      </div>
+      <!-- Save Report -->
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn btn-ghost" id="save-btn" onclick="saveReport()"
+          style="border-color:var(--teal);color:var(--teal);display:none">💾 Save Full Report (.txt)</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- ─── JavaScript ─────────────────────────────────────────────────── -->
+  <script>
+    // ─── State ──────────────────────────────────────────────────────────
+    const state = {
+      a: { report: '', summary: '', chatHistory: [], hasReport: false },
+      b: { report: '', summary: '', chatHistory: [], hasReport: false },
+      fight: { chatHistory: [], verdict: '' }
+    };
+    const MAX_WORDS = 200;
+
+    // ─── Toast ───────────────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    // ─── API Key Auto-Save ───────────────────────────────────────────────
+    const apiKeyInput = document.getElementById('apiKey');
+
+    // Load saved key on boot
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem('scienceBattleApiKey');
+      if (savedKey) apiKeyInput.value = savedKey;
+    });
+
+    // Save key on typing
+    apiKeyInput.addEventListener('input', () => {
+      const val = apiKeyInput.value.trim();
+      if (val) localStorage.setItem('scienceBattleApiKey', val);
+      else localStorage.removeItem('scienceBattleApiKey');
+    });
+
+    // ─── API Key Toggle ──────────────────────────────────────────────────
+    document.getElementById('toggleKey').addEventListener('click', () => {
+      apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+    });
+
+    // ─── Word Counter ────────────────────────────────────────────────────
+    function countWords(text) {
+      return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+    }
+    ['a', 'b'].forEach(side => {
+      document.getElementById('idea-' + side).addEventListener('input', () => {
+        const ta = document.getElementById('idea-' + side);
+        const wc = document.getElementById('wc-' + side);
+        const words = countWords(ta.value);
+        wc.textContent = words + ' / ' + MAX_WORDS;
+        wc.className = 'word-counter' + (words >= MAX_WORDS ? ' limit' : words > 160 ? ' warn' : '');
+        // Truncate at MAX_WORDS
+        if (words > MAX_WORDS) {
+          const truncated = ta.value.trim().split(/\s+/).slice(0, MAX_WORDS).join(' ');
+          ta.value = truncated;
+          wc.textContent = MAX_WORDS + ' / ' + MAX_WORDS;
+        }
+      });
+    });
+
+    // ─── Gemini API Call ─────────────────────────────────────────────────
+    async function callGemini(systemInstruction, messages) {
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const model = document.getElementById('modelSelect').value;
+      if (!apiKey) { showToast('Please enter your Gemini API key first.'); throw new Error('No API key'); }
+
+      const body = {
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents: messages,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
+      };
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '(no response)';
+    }
+
+    // ─── System Prompts ──────────────────────────────────────────────────
+    const EDITOR_SYSTEM = `You are a senior editor at Nature and Science with 20 years of experience. 
+You are rigorous, intellectually honest, and have high standards. 
+When evaluating a research idea, you assess it on:
+1. NOVELTY — Is this truly new or incremental?
+2. TIMELINESS — Is this in vogue, is the field ready for this?
+3. BROAD IMPACT — Does it speak to a wide scientific audience or society?
+4. FEASIBILITY — Can the science realistically deliver what is promised?
+5. FIT — Does it match the scope of Nature/Science or similar high-tier journals?
+
+You are NOT encouraging. You are critical but fair. You will point out weaknesses openly.
+You may also note if the idea better fits a policy forum, review article, or specialized journal.
+Your response should be structured with clear sections and end with a brief note on 
+"What it would take to clear the bar" for publication.`;
+
+    const CHAT_SYSTEM = `You are a senior editor at Nature and Science engaging in a discussion with an author 
+about their research idea. You previously provided an assessment. You are continuing a dialogue 
+where the author may challenge your assessment, provide additional evidence, or refine the idea.
+Be intellectually honest: if the author makes a good point, acknowledge it and revise your view.
+If the point is weak, explain why. Help the author strengthen their idea.
+Keep responses concise but substantive (3-6 paragraphs).`;
+
+    const FIGHT_SYSTEM = `You are the editorial board chair of Nature. You are comparing two competing research ideas 
+to decide which one has stronger potential for high-tier publication. You will consider:
+- Novelty and originality
+- Timeliness and alignment with current scientific discourse
+- Breadth of impact (scientific and societal)
+- Feasibility of execution
+- Overall publishability in Nature/Science
+
+Be diplomatic but decisive. Provide a structured comparison and a clear verdict on which idea 
+has the better chance of acceptance. Also suggest how the losing idea could be redirected.`;
+
+    // ─── Check Feasibility ───────────────────────────────────────────────
+    async function checkFeasibility(side) {
+      const idea = document.getElementById('idea-' + side).value.trim();
+      if (!idea || countWords(idea) < 10) {
+        showToast('Please write at least 10 words outlining your idea.');
+        return;
+      }
+      const btn = document.getElementById('check-' + side);
+      const reportPanel = document.getElementById('report-' + side);
+      const reportText = document.getElementById('report-text-' + side);
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Analysing…';
+
+      try {
+        const name = getIdeaName(side);
+        const messages = [{ role: 'user', parts: [{ text: `Please evaluate the following research idea (titled "${name}") for suitability in Nature or Science:\n\n${idea}\n\nFormat your response with clear section headers (## Novelty, ## Timeliness, ## Broad Impact, ## Feasibility, ## Fit, ## What It Would Take). Do not use tables.` }] }];
+        const response = await callGemini(EDITOR_SYSTEM, messages);
+
+        state[side].report = response;
+        state[side].hasReport = true;
+
+        reportText.className = 'report-content md-body';
+        reportText.innerHTML = renderMarkdown(response);
+        reportPanel.classList.add('visible');
+
+        // Seed chat history with first exchange
+        state[side].chatHistory = [
+          { role: 'user', parts: [{ text: `My research idea ("${name}"):\n${idea}` }] },
+          { role: 'model', parts: [{ text: response }] }
+        ];
+
+        document.getElementById('challenge-btn-' + side).style.display = 'inline-flex';
+        reportPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🔬 Check Feasibility';
+      }
+    }
+
+    // ─── Toggle Challenge Panel ──────────────────────────────────────────
+    function toggleChallenge(side) {
+      const panel = document.getElementById('challenge-' + side);
+      const isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open');
+      document.getElementById('challenge-btn-' + side).textContent = isOpen ? '💬 Challenge' : '💬 Close Challenge';
+      if (!isOpen) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ─── Chat Key Handler ────────────────────────────────────────────────
+    function chatKeydown(e, side) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(side); }
+    }
+    function fightChatKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFightChat(); }
+    }
+
+    // ─── Append Message ──────────────────────────────────────────────────
+    function appendMsg(containerId, role, text) {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.textContent = text;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return div;
+    }
+
+    // ─── Send Chat ───────────────────────────────────────────────────────
+    async function sendChat(side) {
+      const inputEl = document.getElementById('chat-input-' + side);
+      const userMsg = inputEl.value.trim();
+      if (!userMsg) return;
+
+      // Append user message to history
+      state[side].chatHistory.push({ role: 'user', parts: [{ text: userMsg }] });
+      appendMsg('chat-' + side, 'user', userMsg);
+      inputEl.value = '';
+
+      // Loading placeholder
+      const loadingDiv = appendMsg('chat-' + side, 'assistant', '…');
+      loadingDiv.innerHTML = '<span class="loader"></span>';
+
+      try {
+        const reply = await callGemini(CHAT_SYSTEM, state[side].chatHistory);
+        state[side].chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+        loadingDiv.innerHTML = renderMarkdown(reply);
+        loadingDiv.className = 'msg assistant md-body';
+      } catch (e) {
+        loadingDiv.textContent = '⚠ Error: ' + e.message;
+        loadingDiv.className = 'msg system-note';
+        state[side].chatHistory.pop();
+      }
+    }
+
+    // ─── Summarize Idea ──────────────────────────────────────────────────
+    async function summarizeIdea(side) {
+      const btn = document.getElementById('summarize-btn-' + side);
+      if (!state[side].chatHistory.length) {
+        showToast('Please run a feasibility check first.');
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Summarising…';
+
+      const summaryPrompt = 'Based on our entire conversation, please produce a refined, concise summary of this research idea in its strongest form. Format it as: (1) Core Question, (2) Novel Contribution, (3) Expected Impact, (4) Key Novelty Arguments, (5) Remaining Risks. Be precise and use no more than 250 words.';
+      const fullHistory = [
+        ...state[side].chatHistory,
+        { role: 'user', parts: [{ text: summaryPrompt }] }
+      ];
+
+      try {
+        const summary = await callGemini(CHAT_SYSTEM, fullHistory);
+        state[side].summary = summary;
+        appendMsg('chat-' + side, 'system-note', '📌 Summary generated below ↓');
+        const stEl = document.getElementById('summary-text-' + side);
+        stEl.className = 'summary-text md-body';
+        stEl.innerHTML = renderMarkdown(summary);
+        document.getElementById('summary-' + side).classList.add('visible');
+        // Update version dropdown
+        const sel = document.getElementById('version-' + side);
+        for (let o of sel.options) { if (o.value === 'summary') { o.disabled = false; } }
+        document.getElementById('summary-' + side).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) {
+        showToast('Error summarising: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✨ Summarize Final Idea';
+      }
+    }
+
+    // ─── Get Idea for Fight ──────────────────────────────────────────────
+    function getIdeaForFight(side) {
+      const version = document.getElementById('version-' + side).value;
+      if (version === 'summary' && state[side].summary) return state[side].summary;
+      if (version === 'reviewed' && state[side].report) {
+        // Pull out the "refined idea" from the report by prepending original + report
+        return `ORIGINAL IDEA:\n${document.getElementById('idea-' + side).value.trim()}\n\nEDITOR'S REVIEWED ASSESSMENT:\n${state[side].report}`;
+      }
+      return document.getElementById('idea-' + side).value.trim();
+    }
+
+    // ─── Fight ───────────────────────────────────────────────────────────
+    async function startFight() {
+      const ideaA = getIdeaForFight('a');
+      const ideaB = getIdeaForFight('b');
+
+      if (!ideaA || ideaA.trim().length < 10) {
+        showToast('Please complete Idea Alpha first.'); return;
+      }
+      if (!ideaB || ideaB.trim().length < 10) {
+        showToast('Please complete Idea Beta first.'); return;
+      }
+
+      const btn = document.getElementById('fight-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Comparing…';
+
+      // Show ideas in fight cells
+      const nameA = getIdeaName('a');
+      const nameB = getIdeaName('b');
+      document.getElementById('fight-title-a').textContent = '💛 ' + nameA;
+      document.getElementById('fight-title-b').textContent = '🩵 ' + nameB;
+      document.getElementById('fight-idea-a').textContent = document.getElementById('idea-a').value.trim();
+      document.getElementById('fight-idea-b').textContent = document.getElementById('idea-b').value.trim();
+
+      // Update version selector labels with user's idea names
+      document.getElementById('version-label-a').textContent = '💛 ' + nameA + ' — use:';
+      document.getElementById('version-label-b').textContent = '🩵 ' + nameB + ' — use:';
+
+      // Reset winner banner
+      document.getElementById('fight-winner').style.display = 'none';
+
+      const prompt = `Please compare these two research ideas and determine which one has a stronger case for publication in Nature or Science.\n\n=== ${nameA} (IDEA ALPHA) ===\n${ideaA}\n\n=== ${nameB} (IDEA BETA) ===\n${ideaB}\n\nFor each criterion below, give a one-word rating (Excellent / Good / Fair / Weak) and a concise 1–2 sentence assessment for each idea. Use exactly this format for every criterion:\n\n## [Criterion]\n**${nameA}:** [Rating] — [brief assessment]\n**${nameB}:** [Rating] — [brief assessment]\n\nCriteria to cover: Novelty, Timeliness, Broad Impact, Feasibility, Publishability.\n\nThen write a short verdict paragraph (3–5 sentences) on which idea has the better chance of acceptance and how the weaker idea could be redirected to a more appropriate journal or improved.\n\nFinally, on its own line at the very end, write exactly:\n🏆 WINNER: [exact name of winning idea]`;
+
+      try {
+        const verdict = await callGemini(FIGHT_SYSTEM, [{ role: 'user', parts: [{ text: prompt }] }]);
+        state.fight.verdict = verdict;
+        state.fight.chatHistory = [
+          { role: 'user', parts: [{ text: prompt }] },
+          { role: 'model', parts: [{ text: verdict }] }
+        ];
+
+        const vEl = document.getElementById('verdict-text');
+        vEl.className = 'verdict-text md-body';
+        vEl.innerHTML = renderMarkdown(verdict);
+
+        // Extract and display winner banner
+        const winnerMatch = verdict.match(/🏆\s*WINNER:\s*(.+)/i);
+        if (winnerMatch) {
+          const winnerEl = document.getElementById('fight-winner');
+          document.getElementById('fight-winner-text').textContent = 'WINNER: ' + winnerMatch[1].trim();
+          winnerEl.style.display = 'flex';
+        }
+
+        document.getElementById('fight-result').classList.add('visible');
+        document.getElementById('fight-summary-btn').style.display = 'inline-flex';
+        document.getElementById('fight-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) {
+        showToast('Error during fight: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '⚔️ Fight!';
+      }
+    }
+
+    // ─── Fight Challenge ─────────────────────────────────────────────────
+    function toggleFightChallenge() {
+      const panel = document.getElementById('fight-challenge');
+      const isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open');
+      document.getElementById('fight-challenge-btn').textContent = isOpen ? '💬 Challenge the Verdict' : '💬 Close Challenge';
+      if (!isOpen) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function sendFightChat() {
+      const inputEl = document.getElementById('fight-chat-input');
+      const userMsg = inputEl.value.trim();
+      if (!userMsg) return;
+
+      state.fight.chatHistory.push({ role: 'user', parts: [{ text: userMsg }] });
+      appendMsg('fight-chat', 'user', userMsg);
+      inputEl.value = '';
+
+      const loadingDiv = appendMsg('fight-chat', 'assistant', '');
+      loadingDiv.innerHTML = '<span class="loader"></span>';
+
+      try {
+        const reply = await callGemini(FIGHT_SYSTEM, state.fight.chatHistory);
+        state.fight.chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+        loadingDiv.innerHTML = renderMarkdown(reply);
+        loadingDiv.className = 'msg assistant md-body';
+      } catch (e) {
+        loadingDiv.textContent = '⚠ Error: ' + e.message;
+        loadingDiv.className = 'msg system-note';
+        state.fight.chatHistory.pop();
+      }
+    }
+
+    async function fightFinalSummary() {
+      const btn = document.getElementById('fight-summary-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Generating…';
+
+      const summaryPrompt = 'Based on our full discussion, please produce a final, definitive verdict summarising: (1) Which idea wins and why, (2) Key strengths of the winning idea, (3) How the losing idea can be redirected to a more suitable journal or improved for a future submission. Keep it to 200 words maximum.';
+      const fullHistory = [...state.fight.chatHistory, { role: 'user', parts: [{ text: summaryPrompt }] }];
+
+      try {
+        const summary = await callGemini(FIGHT_SYSTEM, fullHistory);
+        state.fight.finalSummary = summary;
+        const fsEl = document.getElementById('fight-summary-text');
+        fsEl.className = 'summary-text md-body';
+        fsEl.innerHTML = renderMarkdown(summary);
+        document.getElementById('fight-summary-box').classList.add('visible');
+        document.getElementById('save-btn').style.display = 'inline-flex';
+        document.getElementById('fight-summary-box').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✨ Final Verdict Summary';
+      }
+    }
+
+    // ─── Idea Name Helper ─────────────────────────────────────────────────
+    function getIdeaName(side) {
+      const val = document.getElementById('idea-name-' + side).value.trim();
+      return val || (side === 'a' ? 'Idea Alpha' : 'Idea Beta');
+    }
+
+    // ─── Markdown Renderer ────────────────────────────────────────────────
+    function renderMarkdown(text) {
+      if (typeof marked !== 'undefined') {
+        const html = marked.parse(text);
+        return html.replace(/<table/g, '<div class="md-table-wrap"><table class="md-table"').replace(/<\/table>/g, '</table></div>');
+      }
+      return text.replace(/\n/g, '<br>');
+    }
+
+    // ─── Save Report ──────────────────────────────────────────────────────
+    function saveReport() {
+      const nameA = getIdeaName('a');
+      const nameB = getIdeaName('b');
+      const model = document.getElementById('modelSelect').options[document.getElementById('modelSelect').selectedIndex].text;
+      const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      let out = `SCIENCE PAPER BATTLE — FULL REPORT\n`;
+      out += `Generated: ${ts} | Model: ${model}\n`;
+      out += '='.repeat(60) + '\n\n';
+
+      ['a', 'b'].forEach(side => {
+        const name = side === 'a' ? nameA : nameB;
+        const idea = document.getElementById('idea-' + side).value.trim();
+        out += `[${side === 'a' ? 'ALPHA' : 'BETA'}] ${name}\n`;
+        out += '-'.repeat(50) + '\n';
+        out += `ORIGINAL IDEA:\n${idea}\n\n`;
+        if (state[side].report) out += `EDITOR'S ASSESSMENT:\n${state[side].report}\n\n`;
+        if (state[side].summary) out += `REFINED SUMMARY:\n${state[side].summary}\n\n`;
+        out += '\n';
+      });
+
+      out += '='.repeat(60) + '\n';
+      out += 'HEAD-TO-HEAD VERDICT\n';
+      out += '-'.repeat(50) + '\n';
+      if (state.fight.verdict) out += state.fight.verdict + '\n\n';
+      if (state.fight.finalSummary) out += 'FINAL SUMMARY:\n' + state.fight.finalSummary + '\n';
+
+      const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `science_battle_${nameA.replace(/\s+/g, '_')}_vs_${nameB.replace(/\s+/g, '_')}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('Report saved!');
+    }
+  </script>
+</body>
+
+</html>
