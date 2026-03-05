@@ -912,7 +912,9 @@
       <label for="apiKey">Gemini API Key</label>
       <input type="password" id="apiKey" placeholder="AIza…" autocomplete="off" />
       <button class="api-key-toggle" id="toggleKey" title="Show/hide key">👁</button>
-      <button class="api-key-toggle" onclick="alert('To get a Gemini API Key:\n1. Visit https://aistudio.google.com/app/apikey\n2. Sign in with your Google account\n3. Click \'Create API key\'')" title="How to get a Gemini API Key">❓</button>
+      <button class="api-key-toggle"
+        onclick="alert('To get a Gemini API Key:\n1. Visit https://aistudio.google.com/app/apikey\n2. Sign in with your Google account\n3. Click \'Create API key\'')"
+        title="How to get a Gemini API Key">❓</button>
       <label for="modelSelect">Model</label>
       <select id="modelSelect">
         <optgroup label="─── Gemini 3.x (Latest) ───">
@@ -951,9 +953,9 @@
 
       <div class="textarea-wrap">
         <textarea class="idea-textarea" id="idea-a"
-          placeholder="Outline your research idea in up to 200 words. Be specific: what is the question, what is the approach, and why does it matter?"
+          placeholder="Outline your research idea in up to 300 words. Be specific: what is the question, what is the approach, and why does it matter?"
           maxlength="2000"></textarea>
-        <span class="word-counter" id="wc-a">0 / 200</span>
+        <span class="word-counter" id="wc-a">0 / 300</span>
       </div>
 
       <div class="btn-row">
@@ -1007,9 +1009,9 @@
 
       <div class="textarea-wrap">
         <textarea class="idea-textarea" id="idea-b"
-          placeholder="Outline your research idea in up to 200 words. Be specific: what is the question, what is the approach, and why does it matter?"
+          placeholder="Outline your research idea in up to 300 words. Be specific: what is the question, what is the approach, and why does it matter?"
           maxlength="2000"></textarea>
-        <span class="word-counter" id="wc-b">0 / 200</span>
+        <span class="word-counter" id="wc-b">0 / 300</span>
       </div>
 
       <div class="btn-row">
@@ -1141,7 +1143,7 @@
       b: { report: '', summary: '', chatHistory: [], hasReport: false },
       fight: { chatHistory: [], verdict: '' }
     };
-    const MAX_WORDS = 200;
+    const MAX_WORDS = 300;
 
     // ─── Toast ───────────────────────────────────────────────────────────
     function showToast(msg) {
@@ -1182,7 +1184,7 @@
         const wc = document.getElementById('wc-' + side);
         const words = countWords(ta.value);
         wc.textContent = words + ' / ' + MAX_WORDS;
-        wc.className = 'word-counter' + (words >= MAX_WORDS ? ' limit' : words > 160 ? ' warn' : '');
+        wc.className = 'word-counter' + (words >= MAX_WORDS ? ' limit' : words > 240 ? ' warn' : '');
         // Truncate at MAX_WORDS
         if (words > MAX_WORDS) {
           const truncated = ta.value.trim().split(/\s+/).slice(0, MAX_WORDS).join(' ');
@@ -1358,7 +1360,7 @@ has the better chance of acceptance. Also suggest how the losing idea could be r
       btn.disabled = true;
       btn.innerHTML = '<span class="loader"></span> Summarising…';
 
-      const summaryPrompt = 'Based on our entire conversation, please produce a refined, concise summary of this research idea in its strongest form. Format it as: (1) Core Question, (2) Novel Contribution, (3) Expected Impact, (4) Key Novelty Arguments, (5) Remaining Risks. Be precise and use no more than 250 words.';
+      const summaryPrompt = 'Based on our entire conversation, please produce a refined, concise summary of this research idea in its strongest form. Format it as: (1) Core Question, (2) Novel Contribution, (3) Expected Impact, (4) Key Novelty Arguments, (5) Remaining Risks. EXTREMELY IMPORTANT: Your summary MUST be STRICTLY UNDER 300 WORDS in total. Count your words and do not exceed this strict limit under any circumstances.';
       const fullHistory = [
         ...state[side].chatHistory,
         { role: 'user', parts: [{ text: summaryPrompt }] }
